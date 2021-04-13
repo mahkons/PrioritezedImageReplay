@@ -39,20 +39,19 @@ class RandomSampler(Sampler):
 class PrioritizedSampler(Sampler):
     def __init__(self, trainlen):
         super().__init__(trainlen)
-        self.priorities = np.ones(self.trainlen) * 10 # just some big value
-        self.tree = RangeTree(self.priorities)
+        self.tree = RangeTree(np.ones(self.trainlen) * 10) # just some big init val
         self.update_steps = 0
 
     def sample(self, batch_size):
         sum = self.tree.get_sum()
-        sample_ids = [self.tree.get(np.random.uniform(sum)) for _ in range(batch_size)]
-        probs = self.priorities[sample_ids] / sum
+        sample_ids, probs = zip(*[self.tree.get(np.random.uniform(sum)) for _ in range(batch_size)])
+        probs = np.array(probs)
+        probs /= sum
         return sample_ids, probs
 
     def update(self, sample_ids, priorities):
         self.update_steps += 1
         self.tree.add_value(DECAY_PARAM) # exploration / exploitation
         for sid, p in zip(sample_ids, priorities):
-            self.priorities[sid] = p
             self.tree.update(sid, p)
 

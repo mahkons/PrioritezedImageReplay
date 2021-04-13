@@ -59,7 +59,7 @@ def train(model, trainset, trainsampler, testset, device):
         sample_ids, probs = trainsampler.sample(BATCH_SIZE)
         images, labels = zip(*[trainset[sid] for sid in sample_ids])
         images, labels = torch.stack(images).to(device), torch.tensor(labels, device=device)
-        probs = torch.from_numpy(probs).to(device)
+        probs = torch.tensor(probs, device=device)
 
         outputs = model(images)
         loss = F.cross_entropy(outputs, labels, reduction='none')

@@ -20,7 +20,7 @@ class RangeTree:
 
     def update(self, pos, x):
         pos += self.size
-        self.values[pos] = x
+        self.values[pos] = x - self.constant_add
         pos //= 2
         while (pos):
             self.values[pos] = self.values[2 * pos] + self.values[2 * pos + 1]
@@ -42,4 +42,4 @@ class RangeTree:
             if x > self.values[pos] + self.constant_add * cnt:
                 x -= self.values[pos] + self.constant_add * cnt
                 pos += 1
-        return pos - self.size
+        return pos - self.size, self.values[pos] + self.constant_add
