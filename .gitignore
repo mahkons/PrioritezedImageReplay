@@ -1,6 +1,10 @@
+
 # python
 __pycache__
 
 # vim
 *.swp
 *.swn
+
+# dataset
+data/
