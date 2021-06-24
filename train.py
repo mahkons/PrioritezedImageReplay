@@ -10,11 +10,11 @@ from tqdm import tqdm
 from samplers import RandomSampler, PrioritizedSampler
 
 BATCH_SIZE = 64
-LR = 1e-3
+LR = 1.
 ITERATIONS = 10000
-BETA = 1 # TODO BETA anneal ?
-PRIORITY_EPS = 0.05
-PRIORITY_ALPHA = 1.
+#  BETA = 1 # TODO BETA anneal ?
+#  PRIORITY_EPS = 0.05
+#  PRIORITY_ALPHA = 1.
 
 def create_parser():
     parser = argparse.ArgumentParser()
@@ -51,7 +51,8 @@ def evaluate(model, dataset, device):
 
 
 def train(model, trainset, trainsampler, testset, device):
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+    #  optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+    optimizer = torch.optim.SGD(model.parameters(), lr=LR, momentum=0.9)
 
     sumloss = 0.
     cnt = 0.
@@ -63,20 +64,29 @@ def train(model, trainset, trainsampler, testset, device):
 
         outputs = model(images)
         loss = F.cross_entropy(outputs, labels, reduction='none')
+
+        with torch.no_grad():
+            loss_grad = outputs.clone()
+            loss_grad[torch.arange(len(labels)), labels] -= 1
+            loss_grad_norm = torch.linalg.norm(loss_grad, dim=1)
+
         cnt += len(sample_ids)
         sumloss += loss.sum().item()
 
-        weights = (len(trainset) * probs) ** (-BETA)
+        #  weights = (len(trainset) * probs) ** (-BETA)
         # TODO eh?
         #  weights /= weights.max() # would not it introduce bias with small batchsizes?
 
         # TODO set priority not by loss? for example gradients norm?
-        trainsampler.update(sample_ids, (loss + PRIORITY_EPS) ** PRIORITY_ALPHA)
 
-        loss = (loss * weights).mean()
+
+        if isinstance(trainsampler, PrioritizedSampler):
+            mask = loss_grad_norm > 1
+            trainsampler.update(sample_ids, torch.where(mask, loss_grad_norm, torch.ones_like(loss_grad_norm)))
+            loss = loss / (torch.where(mask, loss_grad_norm, torch.ones_like(loss_grad_norm)))
 
         optimizer.zero_grad()
-        loss.backward()
+        loss.mean().backward()
         optimizer.step()
         
 

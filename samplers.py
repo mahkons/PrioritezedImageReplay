@@ -39,7 +39,7 @@ class RandomSampler(Sampler):
 class PrioritizedSampler(Sampler):
     def __init__(self, trainlen):
         super().__init__(trainlen)
-        self.tree = RangeTree(np.ones(self.trainlen) * 10) # just some big init val
+        self.tree = RangeTree(np.ones(self.trainlen) * 10**9) # just some big init val
         self.update_steps = 0
 
     def sample(self, batch_size):
@@ -51,7 +51,7 @@ class PrioritizedSampler(Sampler):
 
     def update(self, sample_ids, priorities):
         self.update_steps += 1
-        self.tree.add_value(DECAY_PARAM) # exploration / exploitation
+        #  self.tree.add_value(DECAY_PARAM) # exploration / exploitation
         for sid, p in zip(sample_ids, priorities):
             self.tree.update(sid, p)
 
